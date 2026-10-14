@@ -1,0 +1,9 @@
+.workbuddy/
+.codex/
+.release/
+archive/
+releases/
+*.zip
+*.bak
+*.log
+__pycache__/

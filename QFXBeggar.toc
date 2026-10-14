@@ -1,0 +1,18 @@
+## Interface: 120100, 120105
+## Title: |cffffd100Beggar|r
+## Title-zhCN: |cffffd100乞讨者|r
+## Title-zhTW: |cffffd100乞討者|r
+## Notes: Encounter Journal wishlist with configurable Mythic+ and raid auto-whisper rules.
+## Notes-zhCN: 冒险指南装备关注，独立控制大秘境升级/关注与团本关注自动密语。
+## Notes-zhTW: 冒險指南裝備關注，獨立控制鑰石升級/關注與團本關注自動密語。
+## Author: QFX
+## Version: 1.0.25
+## SavedVariablesPerCharacter: QFXBeggarDB
+## IconTexture: Interface\AddOns\QFXBeggar\Media\Icon.tga
+
+Locale.lua
+Core.lua
+AdventureJournal.lua
+Watchlist.lua
+LootMonitor.lua
+RaidLoot.lua
