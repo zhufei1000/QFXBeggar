@@ -1,0 +1,59 @@
+name: Release QFXBeggar
+
+on:
+  push:
+    tags:
+      - "[0-9]*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: qfxbeggar-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate release metadata and credentials
+        id: version
+        env:
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "${CF_API_TOKEN}"
+          version=$(sed -n 's/^## Version:[[:space:]]*//p' QFXBeggar.toc | head -n 1 | tr -d '\r')
+          test "${GITHUB_REF_NAME}" = "${version}"
+          grep -qxF "addon.version = \"${version}\"" Core.lua
+          grep -q '^## Interface:.*120105' QFXBeggar.toc
+          grep -qx '## X-Curse-Project-ID: 1679863' QFXBeggar.toc
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+
+      - name: Validate Lua and chat safety
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lua5.4
+          for file in ./*.lua; do luac5.4 -p "${file}"; done
+          lua5.4 tests/chat_restrictions_test.lua
+
+      - name: Extract current release notes
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          awk -v ver="${VERSION}" 'found && /^## / { exit } $0 == "## " ver { found = 1 } found { print }' CHANGELOG.md > CHANGELOG.tmp
+          test -s CHANGELOG.tmp
+          mv CHANGELOG.tmp CHANGELOG.md
+
+      - name: Package and publish
+        uses: BigWigsMods/packager@v2
+        with:
+          args: -p 1679863 -n "QFXBeggar_${{ steps.version.outputs.version }}"
+        env:
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}

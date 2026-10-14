@@ -2,7 +2,7 @@ local ADDON_NAME, addon = ...
 local L = addon.L
 
 QFXBeggar = addon
-addon.version = "1.0.25"
+addon.version = "1.0.26"
 addon.TRACK = {
     ANY = 0,
     ADVENTURER = 1,

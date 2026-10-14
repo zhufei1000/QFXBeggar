@@ -6,7 +6,8 @@
 ## Notes-zhCN: 冒险指南装备关注，独立控制大秘境升级/关注与团本关注自动密语。
 ## Notes-zhTW: 冒險指南裝備關注，獨立控制鑰石升級/關注與團本關注自動密語。
 ## Author: QFX
-## Version: 1.0.25
+## Version: 1.0.26
+## X-Curse-Project-ID: 1679863
 ## SavedVariablesPerCharacter: QFXBeggarDB
 ## IconTexture: Interface\AddOns\QFXBeggar\Media\Icon.tga
 
