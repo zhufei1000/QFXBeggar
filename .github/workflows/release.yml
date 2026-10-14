@@ -4,24 +4,48 @@ on:
   push:
     tags:
       - "[0-9]*"
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing X.Y.Z tag to publish or retry
+        required: true
+        type: string
 
 permissions:
   contents: write
 
 concurrency:
-  group: qfxbeggar-release-${{ github.ref }}
+  group: qfxbeggar-release-${{ inputs.release_tag && format('refs/tags/{0}', inputs.release_tag) || github.ref }}
   cancel-in-progress: false
 
 jobs:
   release:
     runs-on: ubuntu-latest
+    env:
+      RELEASE_TAG: ${{ inputs.release_tag || github.ref_name }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ inputs.release_tag || github.ref }}
+
+      - name: Check whether this release was already published
+        id: published
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          [[ "${RELEASE_TAG}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          if gh release view "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" --json assets --jq '.assets[].name' 2>/dev/null | grep -qxF "QFXBeggar_${RELEASE_TAG}.zip"; then
+            echo "exists=true" >> "${GITHUB_OUTPUT}"
+            echo "Release attachment already exists; skipping duplicate upload."
+          else
+            echo "exists=false" >> "${GITHUB_OUTPUT}"
+          fi
 
       - name: Validate release metadata and credentials
+        if: steps.published.outputs.exists != 'true'
         id: version
         env:
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
@@ -29,13 +53,14 @@ jobs:
           set -euo pipefail
           test -n "${CF_API_TOKEN}"
           version=$(sed -n 's/^## Version:[[:space:]]*//p' QFXBeggar.toc | head -n 1 | tr -d '\r')
-          test "${GITHUB_REF_NAME}" = "${version}"
+          test "${RELEASE_TAG}" = "${version}"
           grep -qxF "addon.version = \"${version}\"" Core.lua
           grep -q '^## Interface:.*120105' QFXBeggar.toc
           grep -qx '## X-Curse-Project-ID: 1679863' QFXBeggar.toc
           echo "version=${version}" >> "${GITHUB_OUTPUT}"
 
       - name: Validate Lua and chat safety
+        if: steps.published.outputs.exists != 'true'
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq lua5.4
@@ -43,6 +68,7 @@ jobs:
           lua5.4 tests/chat_restrictions_test.lua
 
       - name: Extract current release notes
+        if: steps.published.outputs.exists != 'true'
         env:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
@@ -51,6 +77,7 @@ jobs:
           mv CHANGELOG.tmp CHANGELOG.md
 
       - name: Package and publish
+        if: steps.published.outputs.exists != 'true'
         uses: BigWigsMods/packager@v2
         with:
           args: -p 1679863 -n "QFXBeggar_${{ steps.version.outputs.version }}"
