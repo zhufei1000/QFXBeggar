@@ -260,9 +260,9 @@ local function GetCurrentSpecID()
         return nil
     end
     local specIndex = C_SpecializationInfo.GetSpecialization()
-    if not specIndex or specIndex == 0 or issecretvalue(specIndex) then return nil end
+    if specIndex == nil or issecretvalue(specIndex) or specIndex == 0 then return nil end
     local specID = C_SpecializationInfo.GetSpecializationInfo(specIndex)
-    if not specID or specID == 0 or issecretvalue(specID) then return nil end
+    if specID == nil or issecretvalue(specID) or specID == 0 then return nil end
     return specID
 end
 
@@ -273,22 +273,43 @@ local function GetDesiredSpecIDs()
     local desired = { [currentSpecID] = true }
     if type(GetLootSpecialization) == "function" then
         local lootSpecID = GetLootSpecialization()
-        if lootSpecID and lootSpecID ~= 0 and not issecretvalue(lootSpecID) then
+        if lootSpecID ~= nil and not issecretvalue(lootSpecID) and lootSpecID ~= 0 then
             desired[lootSpecID] = true
         end
     end
     return desired
 end
 
+local function GetPlayerClassID()
+    local _, _, classID = UnitClass("player")
+    if classID == nil or issecretvalue(classID) or classID == 0 then return nil end
+    return classID
+end
+
 local function IsItemForDesiredSpecs(itemLink)
     if not itemLink or issecretvalue(itemLink) then return false end
-    if not C_Item or not C_Item.GetItemSpecInfo then return false end
+    if not C_Item then return false end
 
     local desired = GetDesiredSpecIDs()
     if not desired then return false end
 
-    local ok, specs = pcall(C_Item.GetItemSpecInfo, itemLink)
-    if not ok or type(specs) ~= "table" then return false end
+    -- This API answers eligibility for one concrete class/spec and correctly
+    -- handles broad-use trinkets shared by tank, healer and damage specs.
+    local classID = GetPlayerClassID()
+    if classID and type(C_Item.DoesItemContainSpec) == "function" then
+        for specID in pairs(desired) do
+            if C_Item.DoesItemContainSpec(itemLink, classID, specID) then
+                return true
+            end
+        end
+        return false
+    end
+
+    -- Compatibility fallback for clients where the dedicated eligibility API
+    -- is unavailable. GetItemSpecInfo may return nothing until item data loads.
+    if type(C_Item.GetItemSpecInfo) ~= "function" then return false end
+    local specs = C_Item.GetItemSpecInfo(itemLink)
+    if type(specs) ~= "table" then return false end
 
     for _, specID in ipairs(specs) do
         if specID and not issecretvalue(specID) and desired[specID] then

@@ -2,7 +2,7 @@
 
 World of Warcraft Retail addon for Encounter Journal gear wishlists and configurable Mythic+ and raid loot requests.
 
-Current addon version: **1.0.26**. Interface: **12.1.5** (`120105`).
+Current addon version: **1.0.27**. Interface: **12.1.5** (`120105`).
 
 - Track desired items in the native Encounter Journal.
 - Configure Mythic+ wishlist, item-level upgrade and raid wishlist whisper rules independently.
